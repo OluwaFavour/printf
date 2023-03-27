@@ -1,94 +1,18 @@
-#include <stdarg.h>
-#include <unistd.h>
-#include <stdlib.h>
 #include "main.h"
 
-/**
- * print_char - prints a character
- * @args: the character to print
- * @written: the number of characters printed
- */
-void print_char(va_list args, int *written)
-{
-	char c = (char)va_arg(args, int);
-
-	_putchar(c);
-	*written += 1;
-}
+void print_buffer(char buffer[], int *buff_ind);
 
 /**
- * print_string - prints a string
- * @args: the string to print
- * @written: the number of characters printed
+ * print_buffer - Prints the contents of the buffer if it exist
+ * @buffer: Array of chars
+ * @buff_ind: Index at which to add next char, represents the length.
  */
-void print_string(va_list args, int *written)
+void print_buffer(char buffer[], int *buff_ind)
 {
-	char *s = va_arg(args, char *);
+	if (*buff_ind > 0)
+		write(1, &buffer[0], *buff_ind);
 
-	while (*s != '\0')
-	{
-		_putchar(s);
-		s++;
-		*written += 1;
-	}
-}
-
-/**
- * print_percent - prints a percent sign
- * @written: the number of characters printed
- */
-void print_percent(int *written)
-{
-	_putchar(37); /* print "%" */
-	*written += 1;
-}
-
-/**
- * print_invalid - prints an invalid conversion specifier
- * @format: the format string
- * @written: the number of characters printed
- */
-void print_invalid(const char *format, int *written)
-{
-	write(STDOUT_FILENO, format - 1, 2);
-	*written += 2;
-}
-
-/**
- * handle_conversion_specifier - handles a conversion specifier
- * @format_ptr: the format string
- * @args: the list of arguments
- * @written: the number of characters printed
- */
-void handle_conversion_specifier(const char **format_ptr,
-		va_list args,
-		int *written
-)
-{
-	char conversion_specifier = *(*format_ptr)++;
-	switch (conversion_specifier)
-	{
-	case 'c':
-	{
-		print_char(args, written);
-		break;
-	}
-	case 's':
-	{
-		print_string(args, written);
-		break;
-	}
-	case '%':
-	{
-		print_percent(written);
-		break;
-	}
-	default:
-	{
-		print_invalid(*format_ptr, written);
-		break;
-	}
-	}
+	*buff_ind = 0;
 }
 
 /**
@@ -98,24 +22,45 @@ void handle_conversion_specifier(const char **format_ptr,
  */
 int _printf(const char *format, ...)i
 {
-	va_list args;
-	int written = 0;
+	int i, printed = 0, printed_chars = 0;
+	int flags, width, precision, size, buff_ind = 0;
+	va_list list;
+	char buffer[BUFF_SIZE];
 
-	va_start(args, format);
-	while (*format != '\0')
+	if (format == NULL)
+		return (-1);
+
+	va_start(list, format);
+
+	for (i = 0; format && format[i] != '\0'; i++)
 	{
-		if (*format == '%')
+		if (format[i] != '%')
 		{
-			format++;
-			handle_conversion_specifier(&format, args, &written);
+			buffer[buff_ind++] = format[i];
+			if (buff_ind == BUFF_SIZE)
+				print_buffer(buffer, &buff_ind);
+			/* write(1, &format[i], 1);*/
+			printed_chars++;
 		}
 		else
 		{
-			_putchar(format);
-			written++;
+			print_buffer(buffer, &buff_ind);
+			flags = get_flags(format, &i);
+			width = get_width(format, &i, list);
+			precision = get_precision(format, &i, list);
+			size = get_size(format, &i);
+			++i;
+			printed = handle_print(format, &i, list, buffer,
+					       flags, width, precision, size);
+			if (printed == -1)
+				return (-1);
+			printed_chars += printed;
 		}
-		format++;
 	}
-	va_end(args);
-	return (written);
+
+	print_buffer(buffer, &buff_ind);
+
+	va_end(list);
+
+	return (printed_chars);
 }
