@@ -20,7 +20,7 @@ void print_buffer(char buffer[], int *buff_ind)
  * @format: the format string
  * Return: the number of characters printed
  */
-int _printf(const char *format, ...)i
+int _printf(const char *format, ...)
 {
 	int i, printed = 0, printed_chars = 0;
 	int flags, width, precision, size, buff_ind = 0;
